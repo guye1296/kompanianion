@@ -39,6 +39,14 @@ class Session:
         elif message.text == '/search':
             return self._prompt_search(message)
 
+    def _send_restaurant_description(self, restaurant: tenbis.Restaurant):
+        try:
+            bot.send_photo(self._chat_id, photo=restaurant.photo_url, caption=str(restaurant))
+        except telebot.apihelper.ApiTelegramException:
+            logging.error(f"URL {restaurant.photo_url} not valid :(")
+            bot.send_message(self._chat_id, str(restaurant))
+
+
     def _prompt_search(self, message: telebot.types.Message):
         bot.send_message(self._chat_id, "Type part of the restaurant to search for...")
         self._next = self._search
@@ -49,17 +57,16 @@ class Session:
         if result is None:
             bot.send_message(self._chat_id, f"Could not find any restaurant containing:\t{query}")
         else:
-            bot.send_message(self._chat_id, str(result))
+            self._send_restaurant_description(result)
 
         self._next = self._route
 
-    @staticmethod
-    def _random(message: telebot.types.Message):
+    def _random(self, message: telebot.types.Message):
         choice = _tenbis_session.get_random_restaurant()
-        bot.reply_to(message, str(choice))
+        self._send_restaurant_description(choice)
 
     @staticmethod
-    def _usage(message: telebot.types.Message):
+    def _usage(self, message: telebot.types.Message):
         bot.reply_to(message, "Usage:\n"
                               "/random : select a random restaurant\n"
                               "/search : search a restaurant\n"
