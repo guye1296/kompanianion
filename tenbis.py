@@ -56,8 +56,7 @@ class Session:
         restaurants = []
         raw_restaurants_list = response["Data"]["restaurantsList"]
         for raw_data in raw_restaurants_list:
-            #if raw_data["isOpenNow"] and raw_data["isActive"] and raw_data["isDeliveryEnabled"]:
-            if raw_data["isActive"] and raw_data["isDeliveryEnabled"]:
+            if raw_data["isOpenNow"] and raw_data["isActive"] and raw_data["isDeliveryEnabled"]:
                 restaurants.append(Restaurant(
                     name=raw_data["restaurantName"],
                     photo_url=raw_data["restaurantLogoUrl"],

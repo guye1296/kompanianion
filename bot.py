@@ -22,6 +22,7 @@ class Session:
     def __init__(self, chat_id):
         self._chat_id = chat_id
         self._next = self._route
+        self._choices = []
 
     def handle(self, message: telebot.types.Message):
         logging.info(f"{self._chat_id}: {message.text}")
@@ -38,6 +39,8 @@ class Session:
             return self._random(message)
         elif message.text == '/search':
             return self._prompt_search(message)
+        elif message.text == '/pick':
+            return self._prompt_pick_restaurant()
 
     def _send_restaurant_description(self, restaurant: tenbis.Restaurant):
         try:
@@ -45,7 +48,6 @@ class Session:
         except telebot.apihelper.ApiTelegramException:
             logging.error(f"URL {restaurant.photo_url} not valid :(")
             bot.send_message(self._chat_id, str(restaurant))
-
 
     def _prompt_search(self, message: telebot.types.Message):
         bot.send_message(self._chat_id, "Type part of the restaurant to search for...")
@@ -65,11 +67,72 @@ class Session:
         choice = _tenbis_session.get_random_restaurant()
         self._send_restaurant_description(choice)
 
-    @staticmethod
+    def _prompt_pick_restaurant(self):
+        markup = telebot.types.ReplyKeyboardMarkup()
+        buttons = [
+            telebot.types.KeyboardButton(_tenbis_session.get_random_restaurant().name) for
+            _ in
+            range(3)
+        ]
+        markup.add(*buttons)
+
+        bot.send_message(
+            self._chat_id, f"Pick a restaurant, {5 - len(self._choices)} remaining...", reply_markup=markup
+        )
+        self._next = self._handle_pick
+
+    def _prompt_eliminate_restaurant(self):
+        markup = telebot.types.ReplyKeyboardMarkup()
+        buttons = [
+            telebot.types.KeyboardButton(choice.name) for
+            choice in
+            self._choices
+        ]
+        markup.add(*buttons)
+
+        bot.send_message(
+            self._chat_id, f"Eliminate a restaurant, {len(self._choices)} remaining...", reply_markup=markup
+        )
+        self._next = self._handle_elimination
+
+    def _handle_pick(self, message: telebot.types.Message):
+        choice = _tenbis_session.search_restaurant(message.text)
+        if choice is None:
+            bot.send_message(self._chat_id, f"Could not find restaurant {message.text}")
+            self._prompt_pick_restaurant()
+            return
+        self._choices.append(choice)
+
+        if 5 == len(self._choices):
+            self._prompt_eliminate_restaurant()
+        else:
+            self._prompt_pick_restaurant()
+
+    def _handle_elimination(self, message: telebot.types.Message):
+        choice = _tenbis_session.search_restaurant(message.text)
+        if choice not in self._choices:
+            bot.send_message(self._chat_id, f"Not an existing restaurant. Choose from the ones in chat")
+            self._prompt_eliminate_restaurant()
+            return
+        self._choices.remove(choice)
+
+        if 1 == len(self._choices):
+            self._prompt_winning_restaurant()
+        else:
+            self._prompt_eliminate_restaurant()
+
+    def _prompt_winning_restaurant(self):
+        assert 1 == len(self._choices)
+        bot.send_message(self._chat_id, "Restaurant chosen!\n")
+        self._send_restaurant_description(self._choices[0])
+        self._choices.clear()
+        self._next = self._route
+
     def _usage(self, message: telebot.types.Message):
         bot.reply_to(message, "Usage:\n"
                               "/random : select a random restaurant\n"
                               "/search : search a restaurant\n"
+                              "/pick : pick a restaurant gladiator style!\n"
                               "/help | /usage : show this message\n"
                      )
 
