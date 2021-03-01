@@ -114,11 +114,10 @@ class Session:
             self._prompt_pick_restaurant()
 
     def _handle_elimination(self, message: telebot.types.Message):
-        choice = next((c for c in self._choices if (c.name in message.text or message.text in c.name)), None)
+        choice = next((c for c in self._choices if message.text.strip() in c.name), None)
         
         if choice is None or choice not in self._choices:
             bot.send_message(self._chat_id, f"Not an existing restaurant. Choose from the ones in chat")
-            import pdb; pdb.set_trace()
             self._prompt_eliminate_restaurant()
             return
 
