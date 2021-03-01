@@ -20,6 +20,11 @@ class Restaurant:
         return f"Name:\t{self.name}\nUrl:\t{self.url}\nDistance:\t{self.distance}\n"
 
 
+def restaurant_from_str(name: str) -> Restaurant:
+    return Restaurant(name=name, photo_url='', url='', distance=0)
+
+
+
 class Session:
     def __init__(self, address_key: str):
         city_id, street_id, house_number = address_key.split('-')
@@ -56,7 +61,7 @@ class Session:
         restaurants = []
         raw_restaurants_list = response["Data"]["restaurantsList"]
         for raw_data in raw_restaurants_list:
-            if raw_data["isOpenNow"] and raw_data["isActive"] and raw_data["isDeliveryEnabled"]:
+            if raw_data["isActive"] and raw_data["isDeliveryEnabled"]:
                 restaurants.append(Restaurant(
                     name=raw_data["restaurantName"],
                     photo_url=raw_data["restaurantLogoUrl"],

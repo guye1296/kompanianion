@@ -96,7 +96,12 @@ class Session:
         self._next = self._handle_elimination
 
     def _handle_pick(self, message: telebot.types.Message):
-        choice = _tenbis_session.search_restaurant(message.text)
+        if message.text.endswith('!'):
+            choice = tenbis.restaurant_from_str(message.text[:message.text.find('!')])
+        else:       
+            choice = _tenbis_session.search_restaurant(message.text)
+
+
         if choice is None:
             bot.send_message(self._chat_id, f"Could not find restaurant {message.text}")
             self._prompt_pick_restaurant()
@@ -109,11 +114,15 @@ class Session:
             self._prompt_pick_restaurant()
 
     def _handle_elimination(self, message: telebot.types.Message):
-        choice = _tenbis_session.search_restaurant(message.text)
-        if choice not in self._choices:
+        choice = next((c for c in self._choices if (c.name in message.text or message.text in c.name)), None)
+        
+        if choice is None or choice not in self._choices:
             bot.send_message(self._chat_id, f"Not an existing restaurant. Choose from the ones in chat")
+            import pdb; pdb.set_trace()
             self._prompt_eliminate_restaurant()
             return
+
+            
         self._choices.remove(choice)
 
         if 1 == len(self._choices):
