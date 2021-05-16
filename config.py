@@ -4,7 +4,7 @@ import os
 API_TOKEN = os.environ["TELEGRAM_API_TOKEN"]
 TENBIS_OFFICE_LOCATION = os.environ["TENBIS_OFFICE_LOCATION"]
 WEBHOOK_HOST = os.environ["WEBHOOK_HOST"]
-WEBHOOK_PORT = int(os.environ["WEBHOOK_PORT"])
+WEBHOOK_PORT = int(os.environ["PORT"])
 
 WEBHOOK_LISTEN = '0.0.0.0'
 
