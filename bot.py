@@ -1,23 +1,19 @@
 import telebot
 import tenbis
+import flask
+import config
+import time
 import logging
 
 
-def _read_secret(secret_file_name) -> str:
-    try:
-        with open(secret_file_name) as key_file:
-            return key_file.read()
-    except OSError as e:
-        raise RuntimeError(str(e))
-
-
-bot = telebot.TeleBot(_read_secret("api_key.secret"), parse_mode=None)
-_tenbis_session = tenbis.Session(_read_secret("office_location.secret"))
+_app = flask.Flask(__name__)
+_bot = telebot.TeleBot(config.API_TOKEN)
+_tenbis_session = tenbis.Session(config.TENBIS_OFFICE_LOCATION)
 
 
 class Session:
     """
-    A session to a bot given a chat id
+    A session to a _bot given a chat id
     """
     def __init__(self, chat_id):
         self._chat_id = chat_id
@@ -44,20 +40,20 @@ class Session:
 
     def _send_restaurant_description(self, restaurant: tenbis.Restaurant):
         try:
-            bot.send_photo(self._chat_id, photo=restaurant.photo_url, caption=str(restaurant))
+            _bot.send_photo(self._chat_id, photo=restaurant.photo_url, caption=str(restaurant))
         except telebot.apihelper.ApiTelegramException:
             logging.error(f"URL {restaurant.photo_url} not valid :(")
-            bot.send_message(self._chat_id, str(restaurant))
+            _bot.send_message(self._chat_id, str(restaurant))
 
     def _prompt_search(self, message: telebot.types.Message):
-        bot.send_message(self._chat_id, "Type part of the restaurant to search for...")
+        _bot.send_message(self._chat_id, "Type part of the restaurant to search for...")
         self._next = self._search
 
     def _search(self, message: telebot.types.Message):
         query = message.text
         result = _tenbis_session.search_restaurant(query)
         if result is None:
-            bot.send_message(self._chat_id, f"Could not find any restaurant containing:\t{query}")
+            _bot.send_message(self._chat_id, f"Could not find any restaurant containing:\t{query}")
         else:
             self._send_restaurant_description(result)
 
@@ -76,7 +72,7 @@ class Session:
         ]
         markup.add(*buttons)
 
-        bot.send_message(
+        _bot.send_message(
             self._chat_id, f"Pick a restaurant, {5 - len(self._choices)} remaining...", reply_markup=markup
         )
         self._next = self._handle_pick
@@ -90,7 +86,7 @@ class Session:
         ]
         markup.add(*buttons)
 
-        bot.send_message(
+        _bot.send_message(
             self._chat_id, f"Eliminate a restaurant, {len(self._choices)} remaining...", reply_markup=markup
         )
         self._next = self._handle_elimination
@@ -103,7 +99,7 @@ class Session:
 
 
         if choice is None:
-            bot.send_message(self._chat_id, f"Could not find restaurant {message.text}")
+            _bot.send_message(self._chat_id, f"Could not find restaurant {message.text}")
             self._prompt_pick_restaurant()
             return
         self._choices.append(choice)
@@ -117,7 +113,7 @@ class Session:
         choice = next((c for c in self._choices if message.text.strip() in c.name), None)
         
         if choice is None or choice not in self._choices:
-            bot.send_message(self._chat_id, f"Not an existing restaurant. Choose from the ones in chat")
+            _bot.send_message(self._chat_id, f"Not an existing restaurant. Choose from the ones in chat")
             self._prompt_eliminate_restaurant()
             return
 
@@ -131,13 +127,13 @@ class Session:
 
     def _prompt_winning_restaurant(self):
         assert 1 == len(self._choices)
-        bot.send_message(self._chat_id, "Restaurant chosen!\n")
+        _bot.send_message(self._chat_id, "Restaurant chosen!\n")
         self._send_restaurant_description(self._choices[0])
         self._choices.clear()
         self._next = self._route
 
     def _usage(self, message: telebot.types.Message):
-        bot.reply_to(message, "Usage:\n"
+        _bot.reply_to(message, "Usage:\n"
                               "/random : select a random restaurant\n"
                               "/search : search a restaurant\n"
                               "/pick : pick a restaurant gladiator style!\n"
@@ -149,7 +145,7 @@ class Session:
 _sessions = {}
 
 
-@bot.message_handler()
+@_bot.message_handler()
 def route_message(message: telebot.types.Message):
     # add to existing list of user sessions
     try:
@@ -160,3 +156,35 @@ def route_message(message: telebot.types.Message):
         _sessions[message.chat.id] = session
 
     return session.handle(message)
+
+
+# Empty webserver index, return nothing, just http 200
+@_app.route('/', methods=['GET', 'HEAD'])
+def index():
+    return ''
+
+
+# Process webhook calls
+@_app.route(config.WEBHOOK_URL_PATH, methods=['POST'])
+def webhook():
+    if flask.request.headers.get('content-type') == 'application/json':
+        json_string = flask.request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        _bot.process_new_updates([update])
+        return ''
+    else:
+        flask.abort(403)
+
+
+def run():
+    _bot.remove_webhook()
+    time.sleep(0.1)
+
+    _bot.set_webhook(
+        url=config.WEBHOOK_URL_BASE + config.WEBHOOK_URL_PATH,
+    )
+
+    _app.run(
+        host=config.WEBHOOK_LISTEN,
+        port=config.WEBHOOK_PORT,
+    )
