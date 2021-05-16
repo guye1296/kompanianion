@@ -185,7 +185,7 @@ def run():
         url=config.WEBHOOK_URL_BASE + config.WEBHOOK_URL_PATH,
     )
 
-    if webhook is None:
+    if not webhook:
         logging.error("Failed to create webhook")
         raise RuntimeError
 

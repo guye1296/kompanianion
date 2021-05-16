@@ -30,10 +30,6 @@ def configure_application(app, api_token, office_location, port):
     })
 
 
-def create_certs(app):
-    pass
-
-
 def deploy_heroku_bot(heroku_key, app_name, api_token, office_location, port):
     connection = heroku3.from_key(heroku_key)
     try:
@@ -43,7 +39,6 @@ def deploy_heroku_bot(heroku_key, app_name, api_token, office_location, port):
         app = connection.create_app(app_name)
 
     configure_application(app, api_token, office_location, port)
-    create_certs(app)
     app.restart()
 
 
