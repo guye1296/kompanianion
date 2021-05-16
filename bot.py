@@ -192,5 +192,4 @@ def run():
     _app.run(
         host=config.WEBHOOK_LISTEN,
         port=config.WEBHOOK_PORT,
-        threaded=True
     )
