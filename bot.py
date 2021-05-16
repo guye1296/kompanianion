@@ -7,7 +7,7 @@ import logging
 
 
 _app = flask.Flask(__name__)
-_bot = telebot.TeleBot(config.API_TOKEN)
+_bot = telebot.TeleBot(config.API_TOKEN, threaded=False)
 _tenbis_session = tenbis.Session(config.TENBIS_OFFICE_LOCATION)
 
 
@@ -168,6 +168,7 @@ def index():
 @_app.route(config.WEBHOOK_URL_PATH, methods=['POST'])
 def webhook():
     if flask.request.headers.get('content-type') == 'application/json':
+        logging.info("Got new message")
         json_string = flask.request.get_data().decode('utf-8')
         update = telebot.types.Update.de_json(json_string)
         _bot.process_new_updates([update])
@@ -180,11 +181,16 @@ def run():
     _bot.remove_webhook()
     time.sleep(0.1)
 
-    _bot.set_webhook(
+    webhook = _bot.set_webhook(
         url=config.WEBHOOK_URL_BASE + config.WEBHOOK_URL_PATH,
     )
+
+    if webhook is None:
+        logging.error("Failed to create webhook")
+        raise RuntimeError
 
     _app.run(
         host=config.WEBHOOK_LISTEN,
         port=config.WEBHOOK_PORT,
+        threaded=True
     )

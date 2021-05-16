@@ -8,9 +8,6 @@ WEBHOOK_PORT = int(os.environ["WEBHOOK_PORT"])
 
 WEBHOOK_LISTEN = '0.0.0.0'
 
-WEBHOOK_SSL_CERT = './webhook_cert.pem'
-WEBHOOK_SSL_PRIV = './webhook_pkey.pem'
-
 WEBHOOK_URL_BASE = f"https://{WEBHOOK_HOST}:{WEBHOOK_PORT}"
 WEBHOOK_URL_PATH = f"/{API_TOKEN}"
 
