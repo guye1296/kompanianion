@@ -19,8 +19,8 @@ class Bot:
         self._updater.start_webhook(
             listen=config.WEBHOOK_LISTEN,
             port=config.WEBHOOK_PORT,
-            url_path=config.WEBHOOK_URL_PATH,
-            webhook_url=config.WEBHOOK_URL_BASE+config.WEBHOOK_URL_PATH
+            url_path=config.API_TOKEN,
+            webhook_url=f"{config.WEBHOOK_URL_BASE}/{config.API_TOKEN}"
         )
         self._updater.idle()
 
