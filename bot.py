@@ -1,17 +1,11 @@
-import tenbis
 import config
-import logging
 import message_handlers
-from telegram.ext import Updater, MessageHandler
+from telegram.ext import Updater
 
 
 class Bot:
-    # TODO: terminate session after inactivity
-    _tenbis_session = tenbis.Session(config.TENBIS_OFFICE_LOCATION)
-    _sessions = {}
-    _updater = Updater(token=config.API_TOKEN, use_context=True)
-
     def __init__(self):
+        self._updater = Updater(token=config.API_TOKEN, use_context=True)
         self._updater.dispatcher.add_handler(message_handlers.pick_restaurant_handler())
         self._updater.dispatcher.add_handler(message_handlers.help_handler())
 

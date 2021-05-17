@@ -1,5 +1,4 @@
 import logging
-import config
 import bot
 
 
