@@ -1,6 +1,7 @@
 import tenbis
 import config
 import enum
+import telegram.error
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     Updater,
@@ -8,7 +9,7 @@ from telegram.ext import (
     MessageHandler,
     Filters,
     ConversationHandler,
-    CallbackContext
+    CallbackContext,
 )
 
 
@@ -67,13 +68,11 @@ def prompt_winning(update: Update, context: CallbackContext) -> State:
         reply_markup=ReplyKeyboardRemove()
     )
 
+    restaurant = context.chat_data["choices"][0]
     try:
-        restaurant = context.chat_data["choices"][0]
         update.message.reply_photo(photo=restaurant.photo_url, caption=str(restaurant))
-
-    # TODO: catch exception if there is no photo
-    except Exception as e:
-        update.message.reply_text("Internal error")
+    except telegram.error.BadRequest:
+        update.message.reply_text(str(restaurant))
 
     del context.chat_data["choices"]
 
