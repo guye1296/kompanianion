@@ -24,7 +24,6 @@ def restaurant_from_str(name: str) -> Restaurant:
     return Restaurant(name=name, photo_url='', url='', distance=0)
 
 
-
 class Session:
     def __init__(self, address_key: str):
         city_id, street_id, house_number = address_key.split('-')
